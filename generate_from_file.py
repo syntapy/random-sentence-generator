@@ -4,18 +4,40 @@ Generate a random sentence given an input file.
 
 import nltk.data
 from nltk import word_tokenize
-import argparse
 from sentence_generator import Generator
 
-parser = argparse.ArgumentParser()
-parser.add_argument('filename', help="Filename to use as a corpus.")
-parser.add_argument('-c', '--chain_length', help="Number of words to look back \
-        as context when generating new words. Default is 2.", type=int, default=2)
-args = parser.parse_args()
+import random
+import logging
+import time
 
-with open(args.filename, 'r') as f:
-    sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
-    sents = sent_detector.tokenize(f.read().strip())
-    sent_tokens = [word_tokenize(sent.replace('\n', ' ').lower()) for sent in sents]
-    generator = Generator(sent_tokens, args.chain_length)
-    print(generator.generate())
+import os
+
+class SentenceGenerator:
+    def __init__(self, chain_length, nbooks):
+        logging.info(f"setting up sentence generator from max {nbooks} books")
+        logging.info("this may take a while...")
+        ta=time.time()
+        books_path = './books/'
+        (_, _, filenames) = next(os.walk(books_path))
+        random.shuffle(filenames)
+        sent_tokens=[]
+        logging.info("-"*78)
+        for index, fname in enumerate(filenames):
+            logging.info(f"processing book {index+1}: {fname}")
+            with open(books_path+fname, 'r') as f:
+                sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
+                sents = sent_detector.tokenize(f.read().strip())
+                sent_tokens += [word_tokenize(sent.replace('\n', ' ').lower()) for sent in sents]
+            if index >= nbooks:
+                break
+
+        logging.info("-"*78)
+        tb=time.time()
+        logging.info(f"book processing took {tb-ta}s")
+
+        logging.info("generating tokens")
+        self.generator = Generator(sent_tokens, args.chain_length)
+        logging.info("done")
+
+    def gen_sentence(self):
+        return self.generator.generate()
